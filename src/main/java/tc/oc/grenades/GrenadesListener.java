@@ -1,7 +1,7 @@
 package tc.oc.grenades;
 
 import java.util.Iterator;
-import java.util.Set;
+import java.util.Map;
 
 import javax.annotation.Nonnull;
 
@@ -9,7 +9,10 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Item;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -18,7 +21,10 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
-import com.google.common.collect.Sets;
+import tc.oc.tracker.Trackers;
+import tc.oc.tracker.trackers.ExplosiveTracker;
+
+import com.google.common.collect.Maps;
 
 public class GrenadesListener implements Listener {
     public GrenadesListener(GrenadesPlugin plugin) {
@@ -49,22 +55,24 @@ public class GrenadesListener implements Listener {
                     event.getPlayer().setItemInHand(null);
                 }
 
-                this.grenades.add(item);
+                this.grenades.put(item, event.getPlayer());
             }
         }
     }
 
-    private final @Nonnull Set<Item> grenades = Sets.newHashSet();
+    private final @Nonnull Map<Item, Player> grenades = Maps.newHashMap();
 
     public static class GrenadeDestructionRunner implements Runnable {
-        public GrenadeDestructionRunner(@Nonnull Set<Item> grenades) {
+        public GrenadeDestructionRunner(@Nonnull Map<Item, Player> grenades) {
             this.grenades = grenades;
         }
 
         @Override
         public void run() {
-            for(Iterator<Item> it = this.grenades.iterator(); it.hasNext(); ) {
-                Item item = it.next();
+            for(Iterator<Map.Entry<Item, Player>> it = this.grenades.entrySet().iterator(); it.hasNext(); ) {
+                Map.Entry<Item, Player> entry = it.next();
+                Item item = entry.getKey();
+                Player player = entry.getValue();
 
                 Location location = item.getLocation();
 
@@ -77,7 +85,7 @@ public class GrenadesListener implements Listener {
                     if(block.getRelative(face).getType() == Material.AIR) continue;
                     Vector rel = new Vector(face.getModX(), face.getModY(), face.getModZ()).multiply(0.8);
                     if(location.toVector().isInAABB(min.clone().add(rel).toVector(), max.clone().add(rel).toVector())) {
-                        createExplosive(location);
+                        createExplosive(player, location);
                         it.remove();
                         item.remove();
                         removed = true;
@@ -93,10 +101,14 @@ public class GrenadesListener implements Listener {
             }
         }
 
-        public static void createExplosive(@Nonnull Location location) {
-            location.getWorld().createExplosion(location, 3);
+        public static void createExplosive(@Nonnull Player player, @Nonnull Location location) {
+            TNTPrimed tnt = (TNTPrimed) location.getWorld().spawnEntity(location, EntityType.PRIMED_TNT);
+            tnt.setFuseTicks(0);
+            tnt.setYield(2);
+
+            Trackers.getManager().getTracker(ExplosiveTracker.class).setOwner(tnt, player);
         }
 
-        private final @Nonnull Set<Item> grenades;
+        private final @Nonnull Map<Item, Player> grenades;
     }
 }

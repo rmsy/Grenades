@@ -2,6 +2,8 @@ name: Grenades
 main: tc.oc.grenades.GrenadesPlugin
 version: ${project.version}
 author: Overcast Network
+depend:
+- Tracker
 
 permissions:
   grenades.use:

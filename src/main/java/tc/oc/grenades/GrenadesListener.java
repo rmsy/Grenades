@@ -104,7 +104,7 @@ public class GrenadesListener implements Listener {
         public static void createExplosive(@Nonnull Player player, @Nonnull Location location) {
             TNTPrimed tnt = (TNTPrimed) location.getWorld().spawnEntity(location, EntityType.PRIMED_TNT);
             tnt.setFuseTicks(0);
-            tnt.setYield(2);
+            tnt.setYield(1f);
 
             Trackers.getManager().getTracker(ExplosiveTracker.class).setOwner(tnt, player);
         }
